@@ -1,0 +1,78 @@
+---
+title: "precipdata"
+author: "Daniel Malone"
+date: "2023-10-03"
+output: html_document
+---
+URL for the precipitation data is "https://www.ncei.noaa.gov/pub/data/cirs/climdiv/climdiv-pcpncy-v1.0.0-20230907"
+Readme is located at "https://www.ncei.noaa.gov/pub/data/cirs/climdiv/county-readme.txt"
+```{r}
+library(tidyverse)
+library(rvest)
+library(glue)
+library(stringr)
+library(rnoaa)
+```
+
+```{r}
+#after importing the initial precipitation data using the import feature and saving it as precipitation_data, this chunk will clean the data and make it usable.
+precipitation_data = precipitation_data|>
+  separate_wider_position(X1, c(fips = 5, type = 2, year = 4))
+names(precipitation_data)[4:15] = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+neededprecipdat = precipitation_data|>
+  filter(type == "01")
+neededprecipdat|>
+  group_by(type)|>
+  count(type)
+neededprecipdat|>
+  group_by(year)|>
+  count(year)
+#this saves the cleaned precipiation data
+write.table(neededprecipdat, file = "precipdata", sep = ",", col.names = TRUE)
+```
+
+```{r}
+#after reimporting the precipitation data, this cleans the reimported data set and makes it usable
+names(precipdata) = c("fips", "type", "year", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+cleanprecipdata = precipdata|>
+  mutate_all(~sub('"', "", .))
+cleanprecipdata = cleanprecipdata|>
+  mutate_all(~sub('"',"",.))
+namerow = seq(1:403773)
+rownames(cleanprecipdata) = namerow
+
+#this changes the precipitation amount for each month to a number so one can do math on them
+cleanprecipdata$jan = as.numeric(cleanprecipdata$jan)
+cleanprecipdata$feb = as.numeric(cleanprecipdata$feb)
+cleanprecipdata$mar = as.numeric(cleanprecipdata$mar)
+cleanprecipdata$apr = as.numeric(cleanprecipdata$apr)
+cleanprecipdata$may = as.numeric(cleanprecipdata$may)
+cleanprecipdata$jun = as.numeric(cleanprecipdata$jun)
+cleanprecipdata$jul = as.numeric(cleanprecipdata$jul)
+cleanprecipdata$aug = as.numeric(cleanprecipdata$aug)
+cleanprecipdata$sep = as.numeric(cleanprecipdata$sep)
+cleanprecipdata$oct = as.numeric(cleanprecipdata$oct)
+cleanprecipdata$nov = as.numeric(cleanprecipdata$nov)
+cleanprecipdata$dec = as.numeric(cleanprecipdata$dec)
+#this drops the "type" column, and then calculates the average precipitation for each row
+cleanprecipdata = cleanprecipdata|>
+  select(!type)
+cleanprecipdata = cleanprecipdata|>
+  mutate(tot = rowSums(cleanprecipdata[,c(4,5,6,7,8,9,10,11,12,13,14)]))|>
+  mutate(ave = tot/12)
+#this removes any entries from the year 2023, as it is incomplete.
+cleanprecipdata = cleanprecipdata|>
+  filter(year != 2023)
+cleanprecipdata = cleanprecipdata|>
+  group_by(fips)|>
+  mutate(meanprecip = mean(ave))
+diffprecip = cleanprecipdata$ave - cleanprecipdata$meanprecip
+cleanprecipdata = cbind(cleanprecipdata,diffprecip)
+cleanprecipdata = cleanprecipdata|>
+  rename(diff = ...18)
+cleanprecipdata = cleanprecipdata |>
+  mutate(drought = as.integer(diff <= 15))
+#this saves the recleaned, and average calculated, data
+write.table(cleanprecipdata, file = "precipwithaverages", sep = ",", col.names = TRUE)
+```
+
