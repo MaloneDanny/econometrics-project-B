@@ -1,0 +1,76 @@
+---
+title: "Working paper"
+author: "Daniel Malone"
+date: "2023-11-06"
+output: html_document
+---
+Set up chunk with libraries which may be useful.
+```{r}
+library(tidyverse)
+library(zoo)
+```
+
+Chunk which cleans data and creates conditions which determine drought, based on yearly precipitation patterns
+```{r}
+#make a function which will clean the data set, and add relevant variables
+cleanmaster = function(x){
+#make a copy of the master data set, then create two new colums which record the state fip code and county fip code separately
+master2 = x|>
+  mutate(fipscopy = fips)|>
+  separate_wider_position(fipscopy, c(statefip = 2, countyfip = 3))
+
+#modifies the year and precipitation variables so that they can be better used for regression analysis
+master3 = master2
+master3$year = factor(as.numeric(master3$year))
+master3$precip = as.numeric(master3$precip)
+
+#create two new variables.  One records last year's precipitation, and the other records whether there was a year to year drop in precipitation
+master3 = master3|>
+  mutate(lastyearprecip = lag(precip))|>
+  mutate(dropprecip = if_else(precip - lastyearprecip < 0, TRUE, FALSE))
+
+#create three new variables, which records if there was a drought in that county that year.  This is recorded as three year droughts, four year droughts, and five year droughts.
+master4 = master3|>
+  group_by(fips)|>
+  mutate(smalldrought = ifelse(dropprecip == TRUE & lag(dropprecip)== TRUE & lag(dropprecip, n = 2)==TRUE,TRUE,FALSE))|>
+  mutate(meddrought = ifelse(smalldrought == TRUE & lag(smalldrought) == TRUE,TRUE,FALSE))|>
+  mutate(longdrought = ifelse(meddrought == TRUE & lag(meddrought) == TRUE,TRUE,FALSE))
+}
+```
+This chunk runs the specified function above and creates a new dataset which has been cleaned
+```{r}
+cleandat = cleanmaster(master_data)
+```
+Checks some things in the dataset, then creates two datasets which are specifically for county level and state level data
+```{r}
+#counts the number of counties which were in a three year, four year, and five year drought
+cleandat|>
+  group_by(smalldrought)|>
+  count(smalldrought)
+cleandat|>
+  group_by(meddrought)|>
+  count(meddrought)
+cleandat|>
+  group_by(longdrought)|>
+  count(longdrought)
+
+#points out which states are in the dataset.
+cleandat2 = cleandat
+cleandat2$statefip = factor(cleandat2$statefip)
+cleandat2|>
+  group_by(statefip, .drop = FALSE)|>
+  count(statefip)
+#3, 7, 14, 43, 52, are skipped.
+
+#creates two separate datasets off the cleaned data set which separates fips codes that refer to state data and county data.
+countymaster = cleandat|>
+  filter(countyfip != "000")
+statemaster = cleandat|>
+  filter(countyfip == "000")
+```
+
+```{r}
+#runs the regression
+ols = lm(cleandat$net_migration ~ cleandat$lastyearprecip + cleandat$smalldrought + cleandat$lastyearprecip * cleandat$smalldrought + cleandat$fips + cleandat$statefip * cleandat$year)
+summary(ols)
+```

@@ -1,0 +1,47 @@
+---
+title: "convert fips code of precipitation data"
+author: "Daniel Malone"
+date: "2023-11-07"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+
+Fixes the fips codes in precipitation_diff by replacing the state part of the fips code with the correct number for that state.  The conversion is done using a guide based on the read me for the precipitation data (https://www.ncei.noaa.gov/pub/data/cirs/climdiv/county-readme.txt) and the FCC (https://transition.fcc.gov/oet/info/maps/census/fips/fips.txt)
+```{r}
+#read in the conversion rubric, make sure the location is correct on your computer
+conversion = read.csv("C:/Users/malon/Downloads/Fips code convertion rubric - Sheet1.csv",header = FALSE )
+
+#gives the conversion table column names
+names = c("state", "statefip", "correctstatefip")
+colnames(conversion) = names
+
+#make sure to read in precipitation_diff, then separates the fips code into state and county fips codes.
+precipitation_data2 = precipitation_data|>
+  separate_wider_position(fips, c(statefip = 2, countyfip = 3))
+
+#prepares the strings of the conversion rubric to be merged with the precipitation data
+conversion$statefip = gsub('"', "", conversion$statefip)
+conversion$correctstatefip = gsub('"', "", conversion$correctstatefip)
+
+#merge the data
+convertprecip = merge(precipitation_data2, conversion)
+
+#glue the fips codes back together using the correct state fip
+convertprecip$fips = paste(convertprecip$correctstatefip, convertprecip$countyfip)
+convertprecip$fips = gsub(" ", "", convertprecip$fips)
+
+#recreate the fips_year variable using the correct fips codes
+convertprecip$fips_year = paste(convertprecip$fips, convertprecip$year)
+convertprecip$fips_year = gsub(" ", "_", convertprecip$fips_year)
+
+#drop the unneeded variables
+convertprecip = convertprecip|>
+  select(year, precip, fips_year, difference, state, fips)
+
+#write a .csv file with the corrected FIPS precipitation data.  This can be easily read back into R using read.csv
+write.csv(convertprecip, file = "Corrected FIPS Precipitation")
+```
+
+

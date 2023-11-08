@@ -1,0 +1,34 @@
+---
+title: "data assignment summaries"
+author: "Daniel Malone"
+date: "2023-10-06"
+output: html_document
+---
+
+```{r}
+bigdataset = read.csv("bigdataset")
+
+bigdataset$net_migration = as.numeric(bigdataset$net_migration)
+bigdataset$pop_estimates = as.numeric(bigdataset$pop_estimates)
+precip_diff = precipitation_data[,5]
+usedbigdat = merge(master_data, precipitation_data)
+usedbigdat$pop_estimates = as.numeric(usedbigdat$pop_estimates)
+usedbigdat$net_migration = as.numeric(usedbigdat$net_migration)
+plotdat = usedbigdat|>
+  arrange(year, fips)|>
+  rename(precipiation_difference = difference)|>
+  mutate(migrationpopulation = net_migration/pop_estimates)
+summary(plotdat)
+save(plotdat, file = "summarydata")
+plot(plotdat$precipiation_difference,plotdat$net_migration_rate,xlab = "Difference in Precipitation", ylab = "Net Migration as a Percent of Population")
+
+  ?plot
+                                              
+```
+```{r}
+install.packages("haven")
+library(haven)
+write_dta(plotdat, "summarystatdat.dta")
+
+```
+
