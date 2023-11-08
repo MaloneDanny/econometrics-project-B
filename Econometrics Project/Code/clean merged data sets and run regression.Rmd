@@ -1,5 +1,5 @@
 ---
-title: "Working paper"
+title: "Clean merged data sets and run regression working paper"
 author: "Daniel Malone"
 date: "2023-11-06"
 output: html_document
@@ -8,6 +8,11 @@ Set up chunk with libraries which may be useful.
 ```{r}
 library(tidyverse)
 library(zoo)
+library(future)
+library(future.apply)
+library(tictoc)
+plan(multisession)
+availableCores()
 ```
 
 Chunk which cleans data and creates conditions which determine drought, based on yearly precipitation patterns
@@ -15,26 +20,28 @@ Chunk which cleans data and creates conditions which determine drought, based on
 #make a function which will clean the data set, and add relevant variables
 cleanmaster = function(x){
 #make a copy of the master data set, then create two new colums which record the state fip code and county fip code separately
-master2 = x|>
-  mutate(fipscopy = fips)|>
-  separate_wider_position(fipscopy, c(statefip = 2, countyfip = 3))
+  master2 = x|>
+    mutate(fipscopy = fips)|>
+    separate_wider_position(fipscopy, c(statefip = 2, countyfip = 3))
 
 #modifies the year and precipitation variables so that they can be better used for regression analysis
-master3 = master2
-master3$year = factor(as.numeric(master3$year))
-master3$precip = as.numeric(master3$precip)
+  master3 = master2
+  master3$year = factor(as.numeric(master3$year))
+  master3$precip = as.numeric(master3$precip)
 
 #create two new variables.  One records last year's precipitation, and the other records whether there was a year to year drop in precipitation
-master3 = master3|>
-  mutate(lastyearprecip = lag(precip))|>
-  mutate(dropprecip = if_else(precip - lastyearprecip < 0, TRUE, FALSE))
+  master3 = master3|>
+    mutate(lastyearprecip = lag(precip))|>
+    mutate(dropprecip = if_else(precip - lastyearprecip < 0, TRUE, FALSE))
 
 #create three new variables, which records if there was a drought in that county that year.  This is recorded as three year droughts, four year droughts, and five year droughts.
-master4 = master3|>
-  group_by(fips)|>
-  mutate(smalldrought = ifelse(dropprecip == TRUE & lag(dropprecip)== TRUE & lag(dropprecip, n = 2)==TRUE,TRUE,FALSE))|>
-  mutate(meddrought = ifelse(smalldrought == TRUE & lag(smalldrought) == TRUE,TRUE,FALSE))|>
-  mutate(longdrought = ifelse(meddrought == TRUE & lag(meddrought) == TRUE,TRUE,FALSE))
+  master4 = master3|>
+    group_by(fips)|>
+    mutate(smalldrought = ifelse(dropprecip == TRUE & lag(dropprecip)== TRUE & lag(dropprecip, n = 2)==TRUE,TRUE,FALSE))|>
+    mutate(meddrought = ifelse(smalldrought == TRUE & lag(smalldrought) == TRUE,TRUE,FALSE))|>
+    mutate(longdrought = ifelse(meddrought == TRUE & lag(meddrought) == TRUE,TRUE,FALSE))
+#there is a flaw with this method;  it requires at least three years for the data to register a drought, even though a drought may have been occurring during this time period.  It may be useful to pull precipitation data from 4 years prior to the start date, or to simply move the goalposts, and make sure the regression only runs for time periods without false negative errors.
+  return(master4)
 }
 ```
 This chunk runs the specified function above and creates a new dataset which has been cleaned
@@ -58,19 +65,80 @@ cleandat|>
 cleandat2 = cleandat
 cleandat2$statefip = factor(cleandat2$statefip)
 cleandat2|>
-  group_by(statefip, .drop = FALSE)|>
+  group_by(statefip)|>
   count(statefip)
 #3, 7, 14, 43, 52, are skipped.
 
+#determine if states have both precip and net migration data
+cleandat2|>
+  filter(is.na(precip) == FALSE & is.na(net_migration) == FALSE)|>
+  group_by(statefip)|>
+  count(statefip)
+#3, 7, 14, 43, and 49 lack either precip data or net migration data
+
+#determine if states have precip data
+cleandat2|>
+  filter(is.na(precip) == FALSE)|>
+  group_by(statefip)|>
+  count(statefip)
+#3, 7, 14, 43, and 49 lack precipitation data
+
+#determine if states have net migration data
+cleandat2|>
+  filter(is.na(net_migration) == FALSE)|>
+  group_by(statefip)|>
+  count(statefip)
+#3, 7, 14, 43 lack migration data.
+
 #creates two separate datasets off the cleaned data set which separates fips codes that refer to state data and county data.
 countymaster = cleandat|>
-  filter(countyfip != "000")
+  filter(countyfip != "000",
+         year != "2000",
+         year != "2001",
+         is.na(precip) != TRUE,
+         is.na(net_migration) != TRUE,
+         is.na(smalldrought) != TRUE,
+         is.na(state) == FALSE,
+         is.na(lastyearprecip) != TRUE,
+         is.na(year) != TRUE)
+
+countymaster|>
+  group_by(smalldrought)|>
+  count(smalldrought)
+
+countymaster|>
+  filter(is.na(smalldrought))|>
+  count(fips)
+
+n_distinct(countymaster2$fips)
+  
+
+n_distinct(countymaster$fips)
+
 statemaster = cleandat|>
   filter(countyfip == "000")
 ```
 
+
+```{r}
+
+write_csv(cleandat,file = "readydat")
+filename = "C:/Users/malon/OneDrive/Documents/Rmasterdat.Rda"
+save(cleandat, file = filename)
+filename = "C:/Users/malon/OneDrive/Documents/Rmasterdat2.Rda"
+save(countymaster, file = filename)
+write_csv(countymaster, file = "countymaster")
+```
+
+
 ```{r}
 #runs the regression
-ols = lm(cleandat$net_migration ~ cleandat$lastyearprecip + cleandat$smalldrought + cleandat$lastyearprecip * cleandat$smalldrought + cleandat$fips + cleandat$statefip * cleandat$year)
+# -- WARNING -- 
+#It takes a long time to run this regression of code.  When running it, be patient, and let your computer run.  It may also be wise to add code which allows R to run all available cores at some point, if we want to run this line of code for testing purposes.
+#this regression takes a significant amount of computational power, that R might not be the optimal use here.  Maybe running the exported readymasterdat file on Stata would work better?
+
+
+ols = lm(cleandat$net_migration ~ cleandat$lastyearprecip + cleandat$smalldrought + cleandat$lastyearprecip * cleandat$smalldrought + cleandat$fips + cleandat$state * cleandat$year)
 summary(ols)
+
 ```
