@@ -148,19 +148,25 @@ countymaster = countymaster|>
 
 ```
 
-
+Save the data to the github folder
 ```{r}
+#set working directory to the github folder.  Remember to change this path to your computer!
 wd = ("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 setwd(wd)
+
+#saves the cleaned master dataset.  commented lines of code are previous versions of the dataset
 #write_csv(cleandat,file = "readydat")
 #filename = "Rmasterdat.Rda"
 #save(cleandat, file = filename)
 #filename = "Rmasterdat2.Rda"
 #save(countymaster, file = filename)
 #write_csv(countymaster, file = "countymaster")
-filename = "Rmasterdat3.Rda"
+#filename = "Rmasterdat3.Rda"
+#save(countymaster, file = filename)
+#write_csv(countymaster, file = "countymaster2")
+filename = "Rmasterdat4.Rda"
 save(countymaster, file = filename)
-write_csv(countymaster, file = "countymaster2")
+write_csv(countymaster, file = "countymaster3")
 ```
 
 
@@ -175,21 +181,6 @@ ols = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster
 summary(ols)
 
 ols2 = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster$fips + countymaster$year)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 sc = as.data.frame(ols$coefficients)
 sc = rownames_to_column(sc, "names")
