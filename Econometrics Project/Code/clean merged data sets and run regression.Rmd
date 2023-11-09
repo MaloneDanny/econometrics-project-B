@@ -35,14 +35,16 @@ cleanmaster = function(x){
 #create two new variables.  One records last year's precipitation, and the other records whether there was a year to year drop in precipitation
   master3 = master3|>
     mutate(lastyearprecip = lag(precip))|>
-    mutate(dropprecip = if_else(precip - lastyearprecip < 0, TRUE, FALSE))
+    mutate(dropprecip = if_else(precip - lastyearprecip < 0, 1, 0))
 
 #create three new variables, which records if there was a drought in that county that year.  This is recorded as three year droughts, four year droughts, and five year droughts.
   master4 = master3|>
     group_by(fips)|>
-    mutate(smalldrought = ifelse(dropprecip == TRUE & lag(dropprecip)== TRUE & lag(dropprecip, n = 2)==TRUE,TRUE,FALSE))|>
-    mutate(meddrought = ifelse(smalldrought == TRUE & lag(smalldrought) == TRUE,TRUE,FALSE))|>
-    mutate(longdrought = ifelse(meddrought == TRUE & lag(meddrought) == TRUE,TRUE,FALSE))
+    mutate(drought = ifelse(dropprecip == 1 & lag(dropprecip)== 1 & lag(dropprecip, n = 2)==1,1,0))|>
+    mutate(droughtlength = ifelse(drought == 1, 1,
+                                  ifelse(drought == 1 & lag(drought) == 1, 2, 
+                                  ifelse(drought == 1 & lag(drought) == 1 & lag(drought, n=1) == 1, 3,
+                                  ifelse(drought == 1 & lag(drought) == 1 & lag(drought, n=2) == 1 & lag(drought, n=3) == 1, 4, 0)))))
 #there is a flaw with this method;  it requires at least three years for the data to register a drought, even though a drought may have been occurring during this time period.  It may be useful to pull precipitation data from 4 years prior to the start date, or to simply move the goalposts, and make sure the regression only runs for time periods without false negative errors.
   
 
@@ -59,16 +61,16 @@ Create post and pre drought effects
 #this creates a variable which records the post drought effects
   cleandat = cleandat|>
     group_by(fips)|>
-    mutate(postdrought = ifelse(smalldrought == FALSE & lag(smalldrought) == TRUE, 1,
-                                ifelse(smalldrought == FALSE & lag(smalldrought, n = 2) == TRUE, 2,
-                               ifelse(smalldrought == FALSE & lag(smalldrought, n = 3) == TRUE, 3, 0))))
+    mutate(postdrought = ifelse(drought == 0 & lag(drought) == 1, 1,
+                                ifelse(drought == 0 & lag(drought, n = 2) == 1, 2,
+                               ifelse(drought == 0 & lag(drought, n = 3) == 1, 3, 0))))
 
 #this creates a varible which records the pre drought effects
   cleandat = cleandat|>
     group_by(fips)|>
-    mutate(predrought = ifelse(smalldrought == FALSE & lead(smalldrought, n = 1) == TRUE, 1,
-                                ifelse(smalldrought == FALSE & lead(smalldrought, n = 2) == TRUE, 2,
-                               ifelse(smalldrought == FALSE & lead(smalldrought, n = 3) == TRUE, 3, 0))))
+    mutate(predrought = ifelse(drought == 0 & lead(drought, n = 1) == 1, 1,
+                                ifelse(drought == 0 & lead(drought, n = 2) == 1, 2,
+                               ifelse(drought == 0 & lead(drought, n = 3) == 1, 3, 0))))
   
 #creates a variable which records the migration per population
   cleandat$net_migration = as.numeric(cleandat$net_migration)
@@ -82,14 +84,9 @@ Checks some things in the dataset, then creates two datasets which are specifica
 ```{r}
 #counts the number of counties which were in a three year, four year, and five year drought
 cleandat|>
-  group_by(smalldrought)|>
-  count(smalldrought)
-cleandat|>
-  group_by(meddrought)|>
-  count(meddrought)
-cleandat|>
-  group_by(longdrought)|>
-  count(longdrought)
+  group_by(drought)|>
+  count(drought)
+
 
 #points out which states are in the dataset.
 cleandat2 = cleandat
@@ -130,18 +127,18 @@ countymaster = cleandat|>
          year != "2001",
          is.na(precip) != TRUE,
          is.na(net_migration) != TRUE,
-         is.na(smalldrought) != TRUE,
+         is.na(drought) != TRUE,
          is.na(state) == FALSE,
          is.na(lastyearprecip) != TRUE,
          is.na(year) != TRUE)
 
 #check for droughts and unique fips values
 countymaster|>
-  group_by(smalldrought)|>
-  count(smalldrought)
+  group_by(drought)|>
+  count(drought)
 
 countymaster|>
-  filter(is.na(smalldrought))|>
+  filter(is.na(drought))|>
   count(fips)
 ```
 
@@ -178,7 +175,7 @@ ols = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster
 summary(ols)
 
 ols2 = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster$fips + countymaster$year)
-
+summary(ols2)
 sc = as.data.frame(ols$coefficients)
 sc = rownames_to_column(sc, "names")
 sc$names = gsub("countymaster$", "", sc$names)
