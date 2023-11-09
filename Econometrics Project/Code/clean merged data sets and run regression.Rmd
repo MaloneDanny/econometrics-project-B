@@ -4,6 +4,8 @@ author: "Daniel Malone"
 date: "2023-11-06"
 output: html_document
 ---
+
+
 Set up chunk with libraries which may be useful.
 ```{r}
 library(tidyverse)
@@ -13,6 +15,7 @@ library(future.apply)
 library(tictoc)
 plan(multisession)
 availableCores()
+setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 ```
 
 Chunk which cleans data and creates conditions which determine drought, based on yearly precipitation patterns
@@ -41,6 +44,8 @@ cleanmaster = function(x){
     mutate(meddrought = ifelse(smalldrought == TRUE & lag(smalldrought) == TRUE,TRUE,FALSE))|>
     mutate(longdrought = ifelse(meddrought == TRUE & lag(meddrought) == TRUE,TRUE,FALSE))
 #there is a flaw with this method;  it requires at least three years for the data to register a drought, even though a drought may have been occurring during this time period.  It may be useful to pull precipitation data from 4 years prior to the start date, or to simply move the goalposts, and make sure the regression only runs for time periods without false negative errors.
+  
+
   return(master4)
 }
 ```
@@ -48,6 +53,17 @@ This chunk runs the specified function above and creates a new dataset which has
 ```{r}
 cleandat = cleanmaster(master_data)
 ```
+
+```{r}
+#this creates a variable which records the post drought effects
+  cleandat = cleandat|>
+    group_by(fips)|>
+    mutate(postdrought = ifelse(smalldrought == FALSE & lag(smalldrought) == TRUE, 1,
+                                ifelse(smalldrought == FALSE & lag(smalldrought, n = 2) == TRUE, 2,
+                               ifelse(smalldrought == FALSE & lag(smalldrought, n = 3) == TRUE, 3, 0))))
+
+```
+
 Checks some things in the dataset, then creates two datasets which are specifically for county level and state level data
 ```{r}
 #counts the number of counties which were in a three year, four year, and five year drought
@@ -89,7 +105,10 @@ cleandat2|>
   group_by(statefip)|>
   count(statefip)
 #3, 7, 14, 43 lack migration data.
+```
 
+Creates a new data set, which trims out years outside of the scope of the project, then removes all NA values in relevant fields.
+```{r}
 #creates two separate datasets off the cleaned data set which separates fips codes that refer to state data and county data.
 countymaster = cleandat|>
   filter(countyfip != "000",
@@ -102,6 +121,7 @@ countymaster = cleandat|>
          is.na(lastyearprecip) != TRUE,
          is.na(year) != TRUE)
 
+#check for droughts and unique fips values
 countymaster|>
   group_by(smalldrought)|>
   count(smalldrought)
@@ -109,25 +129,31 @@ countymaster|>
 countymaster|>
   filter(is.na(smalldrought))|>
   count(fips)
+```
 
-n_distinct(countymaster2$fips)
-  
+```{r}
 
-n_distinct(countymaster$fips)
+countymaster = countymaster|>
+  group_by(fips)|>
+  mutate(postdrought = ifelse(smalldrought == FALSE & lag(smalldrought) == TRUE, 1,
+                              ifelse(smalldrought == FALSE & lag(smalldrought, n = 2) == TRUE, 2,
+                              ifelse(smalldrought == FALSE & lag(smalldrought, n = 3) == TRUE, 3, 0))))
 
-statemaster = cleandat|>
-  filter(countyfip == "000")
 ```
 
 
 ```{r}
-
-write_csv(cleandat,file = "readydat")
-filename = "C:/Users/malon/OneDrive/Documents/Rmasterdat.Rda"
-save(cleandat, file = filename)
-filename = "C:/Users/malon/OneDrive/Documents/Rmasterdat2.Rda"
+wd = ("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
+setwd(wd)
+#write_csv(cleandat,file = "readydat")
+#filename = "Rmasterdat.Rda"
+#save(cleandat, file = filename)
+#filename = "Rmasterdat2.Rda"
+#save(countymaster, file = filename)
+#write_csv(countymaster, file = "countymaster")
+filename = "Rmasterdat3.Rda"
 save(countymaster, file = filename)
-write_csv(countymaster, file = "countymaster")
+write_csv(countymaster, file = "countymaster2")
 ```
 
 
@@ -137,8 +163,29 @@ write_csv(countymaster, file = "countymaster")
 #It takes a long time to run this regression of code.  When running it, be patient, and let your computer run.  It may also be wise to add code which allows R to run all available cores at some point, if we want to run this line of code for testing purposes.
 #this regression takes a significant amount of computational power, that R might not be the optimal use here.  Maybe running the exported readymasterdat file on Stata would work better?
 
-
-ols = lm(cleandat$net_migration ~ cleandat$lastyearprecip + cleandat$smalldrought + cleandat$lastyearprecip * cleandat$smalldrought + cleandat$fips + cleandat$state * cleandat$year)
+terms = countymaster$fips + countymaster$state * countymaster$year
+ols = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster$smalldrought + countymaster$lastyearprecip * countymaster$smalldrought + countymaster$fips + countymaster$state * countymaster$year)
 summary(ols)
+
+ols2 = lm(countymaster$net_migration ~ countymaster$lastyearprecip + countymaster$fips + countymaster$year)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sc = as.data.frame(ols$coefficients)
+sc = rownames_to_column(sc, "names")
+sc$names = gsub("countymaster$", "", sc$names)
 
 ```
