@@ -138,16 +138,6 @@ countymaster|>
   count(fips)
 ```
 
-```{r}
-
-countymaster = countymaster|>
-  group_by(fips)|>
-  mutate(postdrought = ifelse(smalldrought == FALSE & lag(smalldrought) == TRUE, 1,
-                              ifelse(smalldrought == FALSE & lag(smalldrought, n = 2) == TRUE, 2,
-                              ifelse(smalldrought == FALSE & lag(smalldrought, n = 3) == TRUE, 3, 0))))
-
-```
-
 Save the data to the github folder
 ```{r}
 #set working directory to the github folder.  Remember to change this path to your computer!
