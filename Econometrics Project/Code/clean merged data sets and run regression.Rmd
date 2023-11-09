@@ -69,6 +69,13 @@ Create post and pre drought effects
     mutate(predrought = ifelse(smalldrought == FALSE & lead(smalldrought, n = 1) == TRUE, 1,
                                 ifelse(smalldrought == FALSE & lead(smalldrought, n = 2) == TRUE, 2,
                                ifelse(smalldrought == FALSE & lead(smalldrought, n = 3) == TRUE, 3, 0))))
+  
+#creates a variable which records the migration per population
+  cleandat$net_migration = as.numeric(cleandat$net_migration)
+  cleandat$pop_estimates = as.numeric(cleandat$pop_estimates)
+  cleandat = cleandat|>
+    group_by(fips)|>
+    mutate(migrationperpop = net_migration / pop_estimates)
 ```
 
 Checks some things in the dataset, then creates two datasets which are specifically for county level and state level data
