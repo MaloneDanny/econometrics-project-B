@@ -54,6 +54,7 @@ This chunk runs the specified function above and creates a new dataset which has
 cleandat = cleanmaster(master_data)
 ```
 
+Create post and pre drought effects
 ```{r}
 #this creates a variable which records the post drought effects
   cleandat = cleandat|>
@@ -62,6 +63,12 @@ cleandat = cleanmaster(master_data)
                                 ifelse(smalldrought == FALSE & lag(smalldrought, n = 2) == TRUE, 2,
                                ifelse(smalldrought == FALSE & lag(smalldrought, n = 3) == TRUE, 3, 0))))
 
+#this creates a varible which records the pre drought effects
+  cleandat = cleandat|>
+    group_by(fips)|>
+    mutate(predrought = ifelse(smalldrought == FALSE & lead(smalldrought, n = 1) == TRUE, 1,
+                                ifelse(smalldrought == FALSE & lead(smalldrought, n = 2) == TRUE, 2,
+                               ifelse(smalldrought == FALSE & lead(smalldrought, n = 3) == TRUE, 3, 0))))
 ```
 
 Checks some things in the dataset, then creates two datasets which are specifically for county level and state level data
