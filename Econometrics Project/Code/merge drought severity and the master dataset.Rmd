@@ -14,7 +14,12 @@ drought_clean2 = drought_clean1|>
   arrange(fips)
 droughtandmaster = merge(master_data, drought_clean2)
 droughtandmaster = droughtandmaster|>
-  mutate(cat4dummy = cat_4 > 0)
+  mutate(cat4dummy = cat_4 > 0)|>
+  mutate(droughtseverity = ifelse(cat_4 > 0, 5,
+                                  ifelse(cat_3 > 0, 4,
+                                         ifelse(cat_2 > 0, 3,
+                                                ifelse(cat_1 > 0, 2,
+                                                       ifelse(cat_0 > 0, 1, 0))))))
 ```
 
 ```{r}
