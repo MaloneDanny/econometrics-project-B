@@ -13,6 +13,7 @@ library(zoo)
 library(future)
 library(future.apply)
 library(tictoc)
+library(did)
 plan(multisession)
 availableCores()
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
@@ -86,28 +87,20 @@ cleandat = cleandat|>
   cleandat = cleandat|>
     group_by(fips)|>
     mutate(droughtstart = ifelse(drought == 1 & lag(drought) == 0, 1, 0),
+           droughttime = 99,
            droughttime = ifelse(droughtstart == 1, 0,
-                                ifelse(lag(droughtstart, n = 1) == 1, 1,
-                                ifelse(lag(droughtstart, n = 2) == 1, 2,
-                                ifelse(lag(droughtstart, n = 3) == 1, 3,
-                                ifelse(lag(droughtstart, n = 4) == 1, 4,
-                                ifelse(lag(droughtstart, n = 5) == 1, 5,
-                                ifelse(lead(droughtstart, n = 1) == 1, -1,
-                                ifelse(lead(droughtstart, n = 2) == 1, -2,
-                                ifelse(lead(droughtstart, n = 3) == 1, -3,
-                                ifelse(lead(droughtstart, n = 4) == 1, -4,
-                                ifelse(lead(droughtstart, n = 5) == 1, -5, 99))))))))))))
-cleandat = cleandat|>
-  group_by(fips)|>
-  mutate(droughttime = ifelse(droughtstart == 1, 
-                              lag(droughttime, n = 1) == 0, 99))
+                                ifelse(lag(droughtstart, n = 1) == 1 & is.na(lag(droughtstart, n = 1)) == FALSE , 1,
+                                ifelse(lag(droughtstart, n = 2) == 1 & is.na(lag(droughtstart, n = 2)) == FALSE, 2,
+                                ifelse(lag(droughtstart, n = 3) == 1 & is.na(lag(droughtstart, n = 3)) == FALSE, 3,
+                                ifelse(lag(droughtstart, n = 4) == 1 & is.na(lag(droughtstart, n = 4)) == FALSE, 4,
+                                ifelse(lag(droughtstart, n = 5) == 1 & is.na(lag(droughtstart, n = 5)) == FALSE, 5,
+                                ifelse(lead(droughtstart, n = 1) == 1 & is.na(lag(droughtstart, n = 1)) == FALSE, -1,
+                                ifelse(lead(droughtstart, n = 2) == 1 & is.na(lag(droughtstart, n = 2)) == FALSE, -2,
+                                ifelse(lead(droughtstart, n = 3) == 1 & is.na(lag(droughtstart, n = 3)) == FALSE, -3,
+                                ifelse(lead(droughtstart, n = 4) == 1 & is.na(lag(droughtstart, n = 4)) == FALSE, -4,
+                                ifelse(lead(droughtstart, n = 5) == 1 & is.na(lag(droughtstart, n = 5)) == FALSE, -5, 99 ))))))))))))
 
-#creates a continuous event time variable
-  cleandat = cleandat|>
-    group_by(fips)|>
-    mutate(droughttime = ifelse(drought == 1, lag(drought) == 0, -predrought,
-                                ifelse(drought == 1, lead(drought))
-?ifelse
+
 #creates a variable which records the migration per population
   cleandat$net_migration = as.numeric(cleandat$net_migration)
   cleandat$pop_estimates = as.numeric(cleandat$pop_estimates)
@@ -180,6 +173,17 @@ countymaster|>
   count(fips)
 ```
 
+```{r}
+cleandat|>
+  group_by(fips)|>
+  count(droughtstart)|>
+  filter(droughtstart ==1 & n>1)
+
+cleandat|>
+  group_by(year)|>
+  count(droughtstart,sort = TRUE)
+count
+```
 Save the data to the github folder
 ```{r}
 #set working directory to the github folder.  Remember to change this path to your computer!

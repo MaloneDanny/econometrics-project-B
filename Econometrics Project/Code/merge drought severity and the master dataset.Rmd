@@ -1,0 +1,23 @@
+---
+title: "merge drought severity and the master dataset"
+author: "Daniel Malone"
+date: "2023-11-10"
+output: html_document
+---
+Set-up chunk
+```{r}
+library(tidyverse)
+```
+
+```{r}
+drought_clean2 = drought_clean1|>
+  arrange(fips)
+droughtandmaster = merge(master_data, drought_clean2)
+droughtandmaster = droughtandmaster|>
+  mutate(cat4dummy = cat_4 > 0)
+```
+
+```{r}
+setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
+save(droughtandmaster,file = "droughtandmaster.Rda")
+```
