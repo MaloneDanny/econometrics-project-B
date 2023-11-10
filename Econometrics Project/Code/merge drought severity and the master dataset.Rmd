@@ -31,10 +31,16 @@ droughtandmaster$droughtseverity = factor(droughtandmaster$droughtseverity)
 
 ```{r}
 #runs the regression.  this may take a very long time
-ols = lm(droughtandmaster$net_migration ~ droughtandmaster$lastyearprecip + droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$fips + droughtandmaster$year)
+ols = lm(droughtandmaster$net_migration ~ droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$fips + droughtandmaster$year)
+summary(ols)
+ols2 = lm(droughtandmaster$net_migration ~ droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$state + droughtandmaster$year)
+summary(ols2)
 ```
 
 ```{r}
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 save(droughtandmaster,file = "droughtandmaster.Rda")
+#this one is unusable;  it cannot be saved to onedrive or pushed to github
+#save(ols, file = "olswithfips.Rda")
+save(ols2, file = "olswithstate.Rda")
 ```
