@@ -10,16 +10,28 @@ library(tidyverse)
 ```
 
 ```{r}
+#merge the master data and the drought severity data
 drought_clean2 = drought_clean1|>
   arrange(fips)
 droughtandmaster = merge(master_data, drought_clean2)
+#create a varible with dummy variables for each category of drought and last year precipitation
 droughtandmaster = droughtandmaster|>
   mutate(cat4dummy = cat_4 > 0)|>
   mutate(droughtseverity = ifelse(cat_4 > 0, 5,
                                   ifelse(cat_3 > 0, 4,
                                          ifelse(cat_2 > 0, 3,
                                                 ifelse(cat_1 > 0, 2,
-                                                       ifelse(cat_0 > 0, 1, 0))))))
+                                                       ifelse(cat_0 > 0, 1, 0))))))|>
+  mutate(lastyearprecip = lag(precip))|>
+  #removes observations with no last year drought
+  filter(is.na(lastyearprecip) == FALSE)
+#turns droughtseverity into a factor to function as a dummy variable
+droughtandmaster$droughtseverity = factor(droughtandmaster$droughtseverity)
+```
+
+```{r}
+#runs the regression.  this may take a very long time
+ols = lm(droughtandmaster$net_migration ~ droughtandmaster$lastyearprecip + droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$fips + droughtandmaster$year)
 ```
 
 ```{r}
