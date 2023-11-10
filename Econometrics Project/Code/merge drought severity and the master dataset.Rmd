@@ -27,6 +27,10 @@ droughtandmaster = droughtandmaster|>
   filter(is.na(lastyearprecip) == FALSE)
 #turns droughtseverity into a factor to function as a dummy variable
 droughtandmaster$droughtseverity = factor(droughtandmaster$droughtseverity)
+droughtandmaster = droughtandmaster|>
+  mutate(fipscopy = fips)|>
+  separate_wider_position(fipscopy, c(statefip = 2, countyfip = 3))
+droughtandmaster$statefip = as.numeric(droughtandmaster$statefip)
 ```
 
 ```{r}
@@ -42,7 +46,7 @@ summary(ols2)
 ```{r}
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 save(droughtandmaster,file = "droughtandmaster.Rda")
-w
+write_csv(droughtandmaster, file = "droughtandmaster.csv")
 #this one is unusable;  it cannot be saved to onedrive or pushed to github
 #save(ols, file = "olswithfips.Rda")
 save(ols2, file = "olswithstate.Rda")
