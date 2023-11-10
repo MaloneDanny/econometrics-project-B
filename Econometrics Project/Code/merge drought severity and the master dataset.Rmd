@@ -42,6 +42,7 @@ summary(ols2)
 ```{r}
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 save(droughtandmaster,file = "droughtandmaster.Rda")
+w
 #this one is unusable;  it cannot be saved to onedrive or pushed to github
 #save(ols, file = "olswithfips.Rda")
 save(ols2, file = "olswithstate.Rda")
