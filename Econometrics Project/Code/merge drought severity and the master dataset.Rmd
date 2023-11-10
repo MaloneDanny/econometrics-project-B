@@ -31,8 +31,10 @@ droughtandmaster$droughtseverity = factor(droughtandmaster$droughtseverity)
 
 ```{r}
 #runs the regression.  this may take a very long time
+#this regression is using county fixed effects.  I do not recommend using county fixed effects, as it creates an unworkable regression output
 ols = lm(droughtandmaster$net_migration ~ droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$fips + droughtandmaster$year)
 summary(ols)
+#this one is the same, but using state fixed effects instead of county
 ols2 = lm(droughtandmaster$net_migration ~ droughtandmaster$droughtseverity + droughtandmaster$lastyearprecip * droughtandmaster$droughtseverity + droughtandmaster$state + droughtandmaster$year)
 summary(ols2)
 ```
