@@ -103,7 +103,9 @@ incomeandmaster3 = incomeandmaster2|>
   mutate(pop10k = pop_estimates / 10000,
          lf = unemployed + employed,
          lfpr = lf / pop_estimates,
-         migrate10k = net_migration / pop10k)
+         migrate10k = net_migration / pop10k)|>
+  group_by(fips)|>
+         mutate(lastyeardrought = lag(droughtseverity, n = 1))
 
 incomeandmaster3$droughtseverity = as.factor(incomeandmaster3$droughtseverity)
 incomeandmaster3$lastyeardrought = as.factor(incomeandmaster3$lastyeardrought)
@@ -132,6 +134,7 @@ fols13 = lm(migrate10k ~ lastyeardrought + lastyearprecip + lastyeardrought * la
 #exports the final regressions
 stargazer(fols4, fols5, fols6, fols7, fols8, type = "html", omit = c("time", "fips"), out = "finalreg.html")
 stargazer(fols9, fols10, fols11, fols12, fols13, type = "html", omit = c("time", "fips"), out = "finalreg2.html")
+stargazer(fols13, type = "html", omit = c("time", "fips"), out = "finalreg3.html")
 
 sumtable(data
 summary(precip)
@@ -139,5 +142,5 @@ summary(precip)
 
 #save the new dataset, makes sure it can be re-read
 write_csv(incomeandmaster3, file = "incomeandmaster2.csv")
-incomeandmaster2 = read_csv("incomeandmaster.csv")
+incomeandmaster2 = read_csv("incomeandmaster2.csv")
 
