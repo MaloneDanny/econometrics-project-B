@@ -136,11 +136,19 @@ stargazer(fols4, fols5, fols6, fols7, fols8, type = "html", omit = c("time", "fi
 stargazer(fols9, fols10, fols11, fols12, fols13, type = "html", omit = c("time", "fips"), out = "finalreg2.html")
 stargazer(fols13, type = "html", omit = c("time", "fips"), out = "finalreg3.html")
 
-sumtable(data
-summary(precip)
-
+#make a new drought severity summary table
+table = summary(incomeandmaster3$droughtseverity)
+total = 67815
+percent = c(table[1] / total, table[2]/total, table[3]/total, table[4]/total, table[5]/total, table[6]/total)
+droughtsummary = cbind(table, percent)
+rownames(droughtsummary) = c("none", "category 0", "category 1", "category 2", "category 3", "category 4")
+droughtsummary = as.data.frame(droughtsummary)
+write_csv(droughtsummary, file = "final drought summary.csv")
 
 #save the new dataset, makes sure it can be re-read
-write_csv(incomeandmaster3, file = "incomeandmaster2.csv")
+write_csv(incomeandmaster3, file = "incomeandmaster3.csv")
 incomeandmaster2 = read_csv("incomeandmaster2.csv")
+
+incomeandmaster3 = read_csv("incomeandmaster3.csv")
+write_csv(incomeandmaster3, file = "finalincomemaster.csv")
 
