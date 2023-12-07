@@ -6,6 +6,8 @@ library(future)
 library(future.apply)
 library(tictoc)
 library(did)
+library(vtable)
+
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 
 #import droughtandmaster and clean_income into the workspace
@@ -29,9 +31,7 @@ incomeandmaster2 = incomeandmaster2|>
   mutate(twoyearprecip = lag(lag(precip)),
          lastyeardrought = lag(droughtseverity))
 
-#save the new dataset, makes sure it can be re-read
-write_csv(incomeandmaster2, file = "incomeandmaster.csv")
-incomeandmaster2 = read_csv("incomeandmaster.csv")
+
 
 incomeandmaster2$time = as.factor(incomeandmaster2$time)
 
@@ -133,6 +133,11 @@ fols13 = lm(migrate10k ~ lastyeardrought + lastyearprecip + lastyeardrought * la
 stargazer(fols4, fols5, fols6, fols7, fols8, type = "html", omit = c("time", "fips"), out = "finalreg.html")
 stargazer(fols9, fols10, fols11, fols12, fols13, type = "html", omit = c("time", "fips"), out = "finalreg2.html")
 
+sumtable(data
+summary(precip)
 
 
+#save the new dataset, makes sure it can be re-read
+write_csv(incomeandmaster3, file = "incomeandmaster2.csv")
+incomeandmaster2 = read_csv("incomeandmaster.csv")
 
