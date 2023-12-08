@@ -8,6 +8,7 @@ library(tictoc)
 library(did)
 library(vtable)
 
+
 setwd("C:/Users/malon/OneDrive/Documents/GitHub/econometrics-project-B/Econometrics Project/Data")
 
 #import droughtandmaster and clean_income into the workspace
@@ -143,7 +144,10 @@ percent = c(table[1] / total, table[2]/total, table[3]/total, table[4]/total, ta
 droughtsummary = cbind(table, percent)
 rownames(droughtsummary) = c("none", "category 0", "category 1", "category 2", "category 3", "category 4")
 droughtsummary = as.data.frame(droughtsummary)
-write_csv(droughtsummary, file = "final drought summary.csv")
+categorylabel = (rownames(droughtsummary))
+droughtsummary = cbind(categorylabel, droughtsummary)
+write_csv(droughtsummary, file = "final drought summary2.csv")
+  
 
 #save the new dataset, makes sure it can be re-read
 write_csv(incomeandmaster3, file = "incomeandmaster3.csv")
